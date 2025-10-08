@@ -11,7 +11,7 @@ Systems Programming
 #include "vectors.h"
 
 #define BUFFER_SIZE 50
-#define VARIABLE_COUNT 10
+#define VARIABLE_COUNT 15
 
 void print_variables(const variable_t* vars, const int size) {
     for (int i = 0; i < size; i++) {
