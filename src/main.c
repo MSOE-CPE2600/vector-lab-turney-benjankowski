@@ -66,6 +66,14 @@ int main(void) {
         }
 
         if (strcmp(current_action.arg1, "quit") == 0) {
+            /* Needed to satisfy Valgrind
+             * Because the free is done at the start of each loop
+             * the program always will exit without freeing some memory
+             * this makes Valgrind complain as it sees the memory
+             * is not free on program exit even though it would be
+             * in normal program execution.
+             */
+            free_action(&current_action);
             break;
         }
 
