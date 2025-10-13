@@ -112,10 +112,11 @@ eqErr_t parse_action(const char* str, action_t* result) {
             case '=':
                 action = inst_Store;
 
-                strcpy(args_store, args[0]);
                 if (argument_pos != 0) {
-                    args_store[argument_pos] = '\0';
+                    // Add null terminator
+                    args[0][argument_pos] = '\0';
                 }
+                strcpy(args_store, args[0]);
 
                 argument_pos = 0;
                 current_argument = 0;
@@ -166,6 +167,12 @@ eqErr_t parse_action(const char* str, action_t* result) {
 
         if (current_char >= '0' && current_char <= '9') in_number = 1;
         args[current_argument][argument_pos++] = current_char;
+    }
+
+    if (action != inst_Store) {
+        // If we are not storing, null out the array to avoid
+        // undefined behavior with unknown memory.
+        args_store[0] = '\0';
     }
 
     // Blank out unused strings to not leave the struct with broken strings
