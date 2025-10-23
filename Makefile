@@ -8,7 +8,7 @@ $(EXECUTABLE): $(OBJ)
 	gcc -Wall $(OBJ) -o $(EXECUTABLE) -lm
 
 %.o: %.c
-	gcc -Wall -c $< -o $@
+	gcc -g -Wall -c $< -o $@
 
 clean:
 	rm -f $(OBJ) $(EXECUTABLE)
