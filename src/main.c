@@ -147,7 +147,7 @@ int main(void) {
                 char variable_name[20];
                 double x, y, z;
 
-                int result = sscanf(line_buffer, "%[^,],%lf,%lf,%lf",
+                const int result = sscanf(line_buffer, "%[^,],%lf,%lf,%lf",
                     variable_name, &x, &y, &z);
 
                 if (result != 4) {
@@ -177,7 +177,7 @@ int main(void) {
             }
 
             for (int i = 0; i < variable_count; i++) {
-                variable_t* v = variables[i];
+                const variable_t* v = variables[i];
 
                 fprintf(file_ptr, "%s,%lf,%lf,%lf\n", 
                     v->name, 
@@ -208,7 +208,7 @@ int main(void) {
         }
 
         if (current_action.action == inst_Store) {
-            int lookup = lookup_variable(
+            const int lookup = lookup_variable(
                 current_action.arg_store, variables, variable_count);
             char* copy_name = strdup(current_action.arg_store);
 
