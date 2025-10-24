@@ -154,13 +154,21 @@ int main(void) {
                     continue;
                 }
 
+                const int var_id = lookup_variable(
+                    variable_name, variables, variable_count);
+
                 variable_t* new_variable = malloc(sizeof(variable_t));
                 new_variable->name = strdup(variable_name);
                 new_variable->vector.x = x;
                 new_variable->vector.y = y;
                 new_variable->vector.z = z;
 
-                variables[variable_count++] = new_variable;
+                if (var_id == -1) {
+                    variables[variable_count++] = new_variable;
+                } else {
+                    free_variable(variables[var_id]);
+                    variables[var_id] = new_variable;
+                }
             }
             
             fclose(file_ptr);
