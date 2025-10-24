@@ -11,17 +11,47 @@ Systems Programming
 #include "vectors.h"
 
 #define BUFFER_SIZE 50
-#define VARIABLE_COUNT 15
+#define VARIABLE_COUNT_START 2
+#define VARIABLE_INCREMENT 10
 
-void print_variables(const variable_t* vars, const int size) {
+#define VARIABLE_LIST_RESIZE if (variable_count >= variable_capacity) { \
+                                 variable_capacity += VARIABLE_INCREMENT; \
+                                 variable_t** v = realloc( \
+                                         variables, \
+                                         variable_capacity * sizeof(variable_t) \
+                                     ); \
+                                 if (!v) { \
+                                     printf("Unable to resize array\n"); \
+                                     continue; \
+                                 } \
+                                 variables = v; \
+                             }
+
+#define READ_FILE_NAME char file_name[20];\
+                       strcpy(file_name, current_action.arg2); \
+                       if (strlen(current_action.arg3) != 0) { \
+                           strcat(file_name, "."); \
+                           strcat(file_name, current_action.arg3); \
+                       }
+
+void print_variables(variable_t** vars, const int size) {
+    if (!vars) { return; }
+
     for (int i = 0; i < size; i++) {
-        const variable_t var = vars[i];
+        const variable_t* var = vars[i];
         printf("%s = x:%f y:%f z:%f\n",
-            var.name,
-            var.vector.x,
-            var.vector.y,
-            var.vector.z);
+            var->name,
+            var->vector.x,
+            var->vector.y,
+            var->vector.z);
     }
+}
+
+void free_variables(variable_t** vars, const int size) {
+    for (int i = 0; i < size; i++) {
+        free_variable(vars[i]);
+    }
+    free(vars);
 }
 
 void print_vector(const Vector_t vector) {
@@ -34,16 +64,25 @@ void print_variable(const variable_t* var) {
 }
 
 void print_help() {
-    printf("help : display help page\n");
-    printf("list : see all stored variables\n");
-    printf("clear: clear all stored variables\n");
-    printf("quit : exit program\n");
+    printf("help ...... : display help page\n");
+    printf("list ...... : see all stored variables\n");
+    printf("clear ..... : clear all stored variables\n");
+    printf("load <file> : load a csv file of variables\n");
+    printf("save <file> : save current vectors into csv file\n");
+    printf("quit ...... : exit program\n");
 }
 
 int main(void) {
     char input[BUFFER_SIZE];
     int variable_count = 0;
-    variable_t variables[VARIABLE_COUNT];
+    int variable_capacity = VARIABLE_COUNT_START;
+
+    variable_t** variables = malloc(variable_capacity * sizeof(variable_t));
+
+    if (!variables) {
+        printf("Failed to allocate memory for variables\n");
+        return 1;
+    }
 
     action_t current_action = {0};
 
@@ -74,6 +113,7 @@ int main(void) {
              * in normal program execution.
              */
             free_action(&current_action);
+            free_variables(variables, variable_count);
             break;
         }
 
@@ -84,14 +124,72 @@ int main(void) {
 
         if (strcmp(current_action.arg1, "clear") == 0) {
             for (int i = 0; i < variable_count; i++) {
-                free_variable(&variables[i]);
-                variables[i].vector = (Vector_t){0, 0, 0};
+                free_variable(variables[i]);
             }
             variable_count = 0;
             printf("All variables cleared\n");
             continue;
         }
 
+        if (strcmp(current_action.arg1, "load") == 0) {
+            READ_FILE_NAME
+
+            FILE* file_ptr = fopen(file_name, "rb");
+            if (!file_ptr) {
+                printf("File could not be opened: %s\n", file_name);
+                continue;
+            }
+
+            char line_buffer[50];
+            while (fgets(line_buffer, sizeof(line_buffer), file_ptr) != NULL) {
+                VARIABLE_LIST_RESIZE
+
+                char variable_name[20];
+                double x, y, z;
+
+                int result = sscanf(line_buffer, "%[^,],%lf,%lf,%lf",
+                    variable_name, &x, &y, &z);
+
+                if (result != 4) {
+                    continue;
+                }
+
+                variable_t* new_variable = malloc(sizeof(variable_t));
+                new_variable->name = strdup(variable_name);
+                new_variable->vector.x = x;
+                new_variable->vector.y = y;
+                new_variable->vector.z = z;
+
+                variables[variable_count++] = new_variable;
+            }
+            
+            fclose(file_ptr);
+            continue;
+        }
+
+        if (strcmp(current_action.arg1, "save") == 0) {
+            READ_FILE_NAME
+            
+            FILE* file_ptr = fopen(file_name, "w");
+            if (!file_ptr) {
+                printf("File could not be opened: %s\n", file_name);
+                continue;
+            }
+
+            for (int i = 0; i < variable_count; i++) {
+                variable_t* v = variables[i];
+
+                fprintf(file_ptr, "%s,%lf,%lf,%lf\n", 
+                    v->name, 
+                    v->vector.x, 
+                    v->vector.y, 
+                    v->vector.z);
+            }
+
+            fclose(file_ptr);
+            continue;
+        }
+        
         Vector_t evaluated_vector;
         const int eval_err = evaluate_action(
             &evaluated_vector,
@@ -110,7 +208,7 @@ int main(void) {
         }
 
         if (current_action.action == inst_Store) {
-            variable_t* lookup = lookup_variable(
+            int lookup = lookup_variable(
                 current_action.arg_store, variables, variable_count);
             char* copy_name = strdup(current_action.arg_store);
 
@@ -120,29 +218,19 @@ int main(void) {
                 continue;
             }
 
-            const variable_t new_variable = {
-                copy_name,
-                evaluated_vector
-            };
+            variable_t* new_variable = malloc(sizeof(variable_t));
+            new_variable->name = copy_name;
+            new_variable->vector = evaluated_vector;
 
-            if (lookup) {
-                free_variable(lookup);
-                lookup->name = new_variable.name;
-                lookup->vector = new_variable.vector;
+            if (lookup != -1) {
+                free_variable(variables[lookup]);
+                variables[lookup] = new_variable;
             } else {
-                if (variable_count < VARIABLE_COUNT) {
-                    variables[variable_count] = new_variable;
-                    variable_count++;
-                } else {
-                    free(copy_name);
-                    printf("Out of variable memory (%d >= %d max)\n",
-                        variable_count,
-                        VARIABLE_COUNT);
-                    continue;
-                }
+                VARIABLE_LIST_RESIZE
+                variables[variable_count++] = new_variable;
             }
 
-            print_variable(&new_variable);
+            print_variable(new_variable);
         }
     }
 }
