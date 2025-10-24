@@ -54,22 +54,22 @@ void free_variable(variable_t* variable);
  */
 Vector_t* lookup_vector(
     const char* name,
-    variable_t* variables,
+    variable_t** variables,
     int variable_count);
 /*
  * Attempts to look up a variable by
  * name given an array of variables
  *
- * Returns NULL if the variable is not found
+ * Returns index or -1 if not found
  */
-variable_t* lookup_variable(
+int lookup_variable(
     const char* name,
-    variable_t* variables,
+    variable_t** variables,
     int variable_count);
 
 eqErr_t parse_action(const char* str, action_t* result);
 eqErr_t evaluate_action(
     Vector_t* output,
     const action_t* action,
-    variable_t* variables,
+    variable_t** variables,
     int variable_count);

@@ -65,31 +65,31 @@ void free_variable(variable_t* variable) {
     if (!variable) return;
 
     free(variable->name);
-    variable->name = NULL;
+    free(variable);
 }
 
 Vector_t* lookup_vector(
     const char* name,
-    variable_t* variables,
+    variable_t** variables,
     int variable_count) {
     for (int i = 0; i < variable_count; i++) {
-        if (strcmp(name, variables[i].name) == 0) {
-            return &variables[i].vector;
+        if (strcmp(name, variables[i]->name) == 0) {
+            return &variables[i]->vector;
         }
     }
     return NULL;
 }
 
-variable_t* lookup_variable(
+int lookup_variable(
     const char* name,
-    variable_t* variables,
+    variable_t** variables,
     int variable_count) {
     for (int i = 0; i < variable_count; i++) {
-        if (strcmp(name, variables[i].name) == 0) {
-            return &variables[i];
+        if (strcmp(name, variables[i]->name) == 0) {
+            return i;
         }
     }
-    return NULL;
+    return -1;
 }
 
 eqErr_t parse_action(const char* str, action_t* result) {
@@ -204,7 +204,7 @@ eqErr_t parse_action(const char* str, action_t* result) {
 eqErr_t evaluate_action(
     Vector_t* output,
     const action_t* action,
-    variable_t* variables,
+    variable_t** variables,
     const int variable_count
     ) {
     if (action->instruction == inst_None) {
@@ -212,20 +212,20 @@ eqErr_t evaluate_action(
             !is_number(action->arg1) ||
             !is_number(action->arg2) ||
             !is_number(action->arg3)) {
-            variable_t* variable = lookup_variable(
+            const int variable = lookup_variable(
                 action->arg1, variables, variable_count);
 
             if (strlen(action->arg2) != 0 || strlen(action->arg3) != 0) {
                 return eqErr_InvalidArguments;
             }
 
-            if (!variable) {
+            if (variable == -1) {
                 return eqErr_VariableNotFound;
             }
 
-            output->x = variable->vector.x;
-            output->y = variable->vector.y;
-            output->z = variable->vector.z;
+            output->x = variables[variable]->vector.x;
+            output->y = variables[variable]->vector.y;
+            output->z = variables[variable]->vector.z;
             return eqErr_Ok;
         }
 
