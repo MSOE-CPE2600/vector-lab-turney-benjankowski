@@ -2,7 +2,7 @@
 A Matlab style command line interface to perform vector operations.
 
 ## Build
-Makefile included `make build`
+Makefile included. Use `make build` to build and `make clean` to cleanup after build
 
 ### Version 1
 - Does in memory operations
@@ -17,3 +17,4 @@ Makefile included `make build`
 ### Version 2
 - Adds storing and loading vectors from CSV
 - Supports unlimited* vectors
+  - Done by making a automatically sized array of varaibles using realloc
